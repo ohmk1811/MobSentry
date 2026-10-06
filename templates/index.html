@@ -1,0 +1,99 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>MobSentry — Mobile Security Analyzer</title>
+  <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}?v={{ asset_ver }}">
+</head>
+<body>
+  <div class="wrap">
+    <header class="hero">
+      <div class="logo">🛡️ MobSentry</div>
+      <h1>Mobile App Security Analyzer</h1>
+      <p class="sub">Deterministic static analysis → evidence → findings.
+         Evidence first; AI reasoning last.</p>
+      <p class="platform-badge">
+        {% if platform == 'ios' %}🍎 iOS mode — upload an <b>.ipa</b>
+        {% else %}🤖 Android mode — upload an <b>.apk</b>{% endif %}
+        · <a class="logout" href="{{ url_for('logout') }}">sign out</a>
+      </p>
+    </header>
+
+    {% if wrong_ext %}<div class="login-error" style="max-width:640px;margin:0 auto 14px">{{ wrong_ext }}</div>{% endif %}
+
+    <form class="drop" method="post" action="{{ url_for('do_analyze') }}"
+          enctype="multipart/form-data" id="form">
+      <input type="file" name="apk" id="apk"
+             accept="{% if platform == 'ios' %}.ipa{% else %}.apk{% endif %}" hidden>
+      <div class="drop-inner" id="dropzone">
+        <div class="big">⬆️</div>
+        <p><strong>Drop {% if platform == 'ios' %}an .ipa{% else %}an .apk{% endif %} here</strong> or click to choose</p>
+        <p class="hint" id="fname">No file selected</p>
+      </div>
+      <button type="submit" id="go" disabled>Analyze {% if platform == 'ios' %}IPA{% else %}APK{% endif %}</button>
+      <div class="spinner" id="spin" hidden>Analyzing… parsing
+        {% if platform == 'ios' %}Info.plist, Mach-O binary, bundle{% else %}dex, manifest, resources, native libs{% endif %}.
+        This can take a bit for large apps.</div>
+    </form>
+
+  </div>
+
+  <script>
+    const apk = document.getElementById('apk');
+    const dz = document.getElementById('dropzone');
+    const fname = document.getElementById('fname');
+    const go = document.getElementById('go');
+    const form = document.getElementById('form');
+    dz.addEventListener('click', () => apk.click());
+    apk.addEventListener('change', () => setFile(apk.files[0]));
+    ['dragover','dragenter'].forEach(e => dz.addEventListener(e, ev => {
+      ev.preventDefault(); dz.classList.add('over');
+    }));
+    ['dragleave','drop'].forEach(e => dz.addEventListener(e, ev => {
+      ev.preventDefault(); dz.classList.remove('over');
+    }));
+    dz.addEventListener('drop', ev => {
+      const f = ev.dataTransfer.files[0];
+      if (f) { apk.files = ev.dataTransfer.files; setFile(f); }
+    });
+    function setFile(f){
+      if(!f) return;
+      fname.textContent = f.name + '  (' + (f.size/1048576).toFixed(1) + ' MB)';
+      go.disabled = false;
+    }
+    // Upload with XHR so we can show upload %; the server answers as soon as
+    // the file is saved and analysis continues in the background (the report
+    // page shows its progress). Without JS the plain form post still works.
+    const spin = document.getElementById('spin');
+    form.addEventListener('submit', ev => {
+      if (!apk.files[0]) return;
+      ev.preventDefault();
+      go.disabled = true; go.textContent = 'Uploading…';
+      spin.hidden = false; spin.style.color = ''; spin.textContent = 'Uploading… 0%';
+      const xhr = new XMLHttpRequest();
+      xhr.open('POST', form.action);
+      xhr.setRequestHeader('X-Requested-With', 'fetch');
+      xhr.upload.onprogress = e => {
+        if (e.lengthComputable)
+          spin.textContent = 'Uploading… ' + Math.round(100 * e.loaded / e.total) + '%';
+      };
+      xhr.onload = () => {
+        let d = {};
+        try { d = JSON.parse(xhr.responseText); } catch (_) {}
+        if (xhr.status === 200 && d.url) { window.location = d.url; return; }
+        if (/\/login/.test(xhr.responseURL)) { window.location = '/login'; return; }
+        if (xhr.status === 413) d.error = 'File too large for the server limit.';
+        fail(d.error || ('Upload failed (HTTP ' + xhr.status + ').'));
+      };
+      xhr.onerror = () => fail('Upload failed — network error. Is the server still running?');
+      xhr.send(new FormData(form));
+    });
+    function fail(msg){
+      spin.textContent = msg; spin.style.color = 'var(--high)';
+      go.disabled = false; go.textContent = go.dataset.label;
+    }
+    go.dataset.label = go.textContent.trim();
+  </script>
+</body>
+</html>

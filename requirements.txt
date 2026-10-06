@@ -1,0 +1,5 @@
+Flask>=3.0.0
+androguard>=4.1.0
+Werkzeug>=3.0.0
+waitress>=3.0.0
+reportlab>=4.0.0

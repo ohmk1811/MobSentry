@@ -1,0 +1,15 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>MobSentry — report</title>
+  <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}?v={{ asset_ver }}">
+</head>
+<body class="report">
+  <div id="app" data-rid="{{ rid }}">
+    <div class="loading">Loading report…</div>
+  </div>
+  <script src="{{ url_for('static', filename='app.js') }}?v={{ asset_ver }}"></script>
+</body>
+</html>

@@ -1,0 +1,25 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>MobSentry — Sign in</title>
+  <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}?v={{ asset_ver }}">
+</head>
+<body>
+  <div class="login-wrap">
+    <form class="login-card" method="post">
+      <div class="logo">🛡️ MobSentry</div>
+      <p class="sub">Mobile App Security Analyzer</p>
+      {% if error %}<div class="login-error">{{ error }}</div>{% endif %}
+      <label>Username
+        <input type="text" name="username" autocomplete="username" autofocus required>
+      </label>
+      <label>Password
+        <input type="password" name="password" autocomplete="current-password" required>
+      </label>
+      <button type="submit">Sign in</button>
+    </form>
+  </div>
+</body>
+</html>
